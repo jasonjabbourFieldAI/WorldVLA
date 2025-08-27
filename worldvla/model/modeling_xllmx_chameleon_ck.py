@@ -344,7 +344,7 @@ class ChameleonXLLMXForConditionalGeneration_ck(ChameleonForConditionalGeneratio
                     action_sequences.append(decoded_actions[start_index+1:end_index])
                 start_index = None
         
-        print(action_sequences)
+        # print(action_sequences)
         
         return action_sequences
     
