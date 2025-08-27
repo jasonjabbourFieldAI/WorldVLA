@@ -16,7 +16,6 @@ from transformers import AutoProcessor
 
 logger = logging.getLogger(__name__)
 
-
 def center_crop(pil_image, crop_size):
     while pil_image.size[0] >= 2 * crop_size[0] and pil_image.size[1] >= 2 * crop_size[1]:
         pil_image = pil_image.resize(tuple(x // 2 for x in pil_image.size), resample=Image.BOX)
@@ -64,7 +63,7 @@ class FlexARItemProcessor(MMConvItemProcessor):
 
     def __init__(
         self,
-        tokenizer= "/mnt/nas_jianchong/cenjun.cj/hug_models/models--Alpha-VLLM--Lumina-mGPT-7B-768/snapshots/9624463a82ea5ce814af9b561dcd08a31082c3af",
+        tokenizer_path=None,
         conv_template=Conversation,
         target_size=512,
     ):
@@ -74,10 +73,11 @@ class FlexARItemProcessor(MMConvItemProcessor):
                 "<|image|>": self.process_image,
             },
             ["<|image|>"],
-            tokenizer,
+            tokenizer_path,
             conv_template,
         )
 
+        self.tokenizer_path = tokenizer_path 
         self.patch_size = 32
         self.crop_size_list = generate_crop_size_list((target_size // self.patch_size) ** 2, self.patch_size)
         logger.info("List of crop sizes:")
@@ -88,12 +88,12 @@ class FlexARItemProcessor(MMConvItemProcessor):
         #  currently still use the original image tokenizer provided by Meta rather than transformers
         #  because the transformers implementation does not contain the vae decoder
         self.chameleon_ori_vocab = chameleon_vae_ori.VocabInfo(
-            json.load(open("../ckpts/chameleon/tokenizer/text_tokenizer.json", encoding="utf8"))["model"]["vocab"]
+            json.load(open(self.tokenizer_path+"text_tokenizer.json", encoding="utf8"))["model"]["vocab"]
         )
         self.chameleon_ori_translation = chameleon_vae_ori.VocabTranslation(self.chameleon_ori_vocab, device="cuda")
         self.chameleon_ori_image_tokenizer = chameleon_vae_ori.ImageTokenizer(
-            cfg_path="../ckpts/chameleon/tokenizer/vqgan.yaml",
-            ckpt_path="../ckpts/chameleon/tokenizer/vqgan.ckpt",
+            cfg_path=self.tokenizer_path+"vqgan.yaml",
+            ckpt_path=self.tokenizer_path+"vqgan.ckpt",
             device="cuda",
         )
 
@@ -209,7 +209,7 @@ class FlexARItemProcessor_Action(MMConvItemProcessor):
 
     def __init__(
         self,
-        tokenizer= "/mnt/nas_jianchong/cenjun.cj/hug_models/models--Alpha-VLLM--Lumina-mGPT-7B-768/snapshots/9624463a82ea5ce814af9b561dcd08a31082c3af",
+        tokenizer_path=None,
         conv_template=Conversation,
         target_size=512,
     ):
@@ -220,10 +220,11 @@ class FlexARItemProcessor_Action(MMConvItemProcessor):
                 "<|action|>": self.process_action,
             },
             ["<|image|>", "<|action|>"],
-            tokenizer,
+            tokenizer_path,
             conv_template,
         )
 
+        self.tokenizer_path = tokenizer_path
         self.patch_size = 32
         self.crop_size_list = generate_crop_size_list((target_size // self.patch_size) ** 2, self.patch_size)
         logger.info("List of crop sizes:")
@@ -234,12 +235,12 @@ class FlexARItemProcessor_Action(MMConvItemProcessor):
         #  currently still use the original image tokenizer provided by Meta rather than transformers
         #  because the transformers implementation does not contain the vae decoder
         self.chameleon_ori_vocab = chameleon_vae_ori.VocabInfo(
-            json.load(open("../ckpts/chameleon/tokenizer/text_tokenizer.json", encoding="utf8"))["model"]["vocab"]
+            json.load(open(self.tokenizer_path + "text_tokenizer.json", encoding="utf8"))["model"]["vocab"]
         )
         self.chameleon_ori_translation = chameleon_vae_ori.VocabTranslation(self.chameleon_ori_vocab, device="cuda")
         self.chameleon_ori_image_tokenizer = chameleon_vae_ori.ImageTokenizer(
-            cfg_path="../ckpts/chameleon/tokenizer/vqgan.yaml",
-            ckpt_path="../ckpts/chameleon/tokenizer/vqgan.ckpt",
+            cfg_path=self.tokenizer_path + "vqgan.yaml",
+            ckpt_path=self.tokenizer_path + "vqgan.ckpt",
             device="cuda",
         )
         
@@ -405,7 +406,7 @@ class FlexARItemProcessor_Action_FAST(MMConvItemProcessor):
 
     def __init__(
         self,
-        tokenizer= "/mnt/nas_jianchong/cenjun.cj/hug_models/models--Alpha-VLLM--Lumina-mGPT-7B-768/snapshots/9624463a82ea5ce814af9b561dcd08a31082c3af",
+        tokenizer_path=None,
         conv_template=Conversation,
         target_size=512,
     ):
@@ -416,10 +417,10 @@ class FlexARItemProcessor_Action_FAST(MMConvItemProcessor):
                 "<|action|>": self.process_action,
             },
             ["<|image|>", "<|action|>"],
-            tokenizer,
+            tokenizer_path,
             conv_template,
         )
-
+        self.tokenizer_path = tokenizer_path
         self.patch_size = 32
         self.crop_size_list = generate_crop_size_list((target_size // self.patch_size) ** 2, self.patch_size)
         logger.info("List of crop sizes:")
@@ -430,12 +431,12 @@ class FlexARItemProcessor_Action_FAST(MMConvItemProcessor):
         #  currently still use the original image tokenizer provided by Meta rather than transformers
         #  because the transformers implementation does not contain the vae decoder
         self.chameleon_ori_vocab = chameleon_vae_ori.VocabInfo(
-            json.load(open("./ckpts/chameleon/tokenizer/text_tokenizer.json", encoding="utf8"))["model"]["vocab"]
+            json.load(open(self.tokenizer_path + "text_tokenizer.json", encoding="utf8"))["model"]["vocab"]
         )
         self.chameleon_ori_translation = chameleon_vae_ori.VocabTranslation(self.chameleon_ori_vocab, device="cuda")
         self.chameleon_ori_image_tokenizer = chameleon_vae_ori.ImageTokenizer(
-            cfg_path="./ckpts/chameleon/tokenizer/vqgan.yaml",
-            ckpt_path="./ckpts/chameleon/tokenizer/vqgan.ckpt",
+            cfg_path=self.tokenizer_path+"vqgan.yaml",
+            ckpt_path=self.tokenizer_path+"tokenizer/vqgan.ckpt",
             device="cuda",
         )
         

@@ -137,7 +137,7 @@ class Solver(PretrainSolverBase):
         DEVICE = torch.device(f"cuda:{self.args.device}")
         self.model = self.model.to(DEVICE)
         self.model.eval()
-        item_processor = ItemProcessor(target_size=256)
+        item_processor = ItemProcessor(target_size=256, pretrained_checkpoint=self.args.resume_path)
         
         # Initialize LIBERO task suite
         benchmark_dict = benchmark.get_benchmark_dict()

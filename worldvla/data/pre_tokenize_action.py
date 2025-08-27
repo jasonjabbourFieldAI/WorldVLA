@@ -15,12 +15,15 @@ from .item_processor import FlexARItemProcessor_Action
 class ItemProcessor(FlexARItemProcessor_Action):
     def __init__(
         self,
-        # tokenizer= "/mnt/nas_jianchong/cenjun.cj/hug_models/models--Alpha-VLLM--Lumina-mGPT-7B-768/snapshots/9624463a82ea5ce814af9b561dcd08a31082c3af",
-        tokenizer= "/mnt/nas_jianchong/cenjun.cj/hug_models/models--Alpha-VLLM--Lumina-mGPT-7B-768/snapshots/9624463a82ea5ce814af9b561dcd08a31082c3af",
+        pretrained_checkpoint=None,
         conv_template=Conversation,
         target_size=512,
     ):
-        super().__init__(tokenizer, conv_template, target_size)
+        # Replace last two dirs with chameleon/tokenizer
+        tokenizer_path = os.path.abspath(os.path.join(pretrained_checkpoint, "../../chameleon/tokenizer"))
+        tokenizer_path = tokenizer_path if tokenizer_path.endswith("/") else tokenizer_path + "/"
+
+        super().__init__(tokenizer_path, conv_template, target_size)
         print(self.crop_size_list)
 
     def process_item(self, raw_item, training_mode=False, out_flatten=True):
