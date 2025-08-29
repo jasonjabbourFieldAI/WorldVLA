@@ -23,15 +23,20 @@ class ChameleonXLLMXForConditionalGeneration_ck(ChameleonForConditionalGeneratio
     def __init__(self, config):
         super().__init__(config)
         self.init_input_ids = None
+        self.is_calibrating = False # For Pruning Calibration Model
 
     def forward(self, input_ids=None, labels=None, training=False, att_mask=True, **kwargs):
 
         if not training:
-            # import pdb; pdb.set_trace()
-            if self.init_input_ids is None:
+            if self.is_calibrating:
+                # Make sure we don't concatinate inputs when doing calibration (memory explodes)
                 self.init_input_ids = input_ids
             else:
-                self.init_input_ids = torch.cat([self.init_input_ids, input_ids], dim=-1)
+                # import pdb; pdb.set_trace()
+                if self.init_input_ids is None:
+                    self.init_input_ids = input_ids
+                else:
+                    self.init_input_ids = torch.cat([self.init_input_ids, input_ids], dim=-1)
             if not att_mask:
                 attention_mask = None
             else:
