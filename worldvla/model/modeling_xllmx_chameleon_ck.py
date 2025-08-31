@@ -221,85 +221,85 @@ class ChameleonXLLMXForConditionalGeneration_ck(ChameleonForConditionalGeneratio
     def generate_att_mask_3(self, input_ids):
         batch_size, seq_len = input_ids.shape
         
-        # 创建初始的下三角矩阵作为基础注意力掩码
+        # Create the initial lower-triangular matrix as the base attention mask
         mask = torch.tril(torch.ones(seq_len, seq_len, device=self.device))
         mask = mask.unsqueeze(0).expand(batch_size, -1, -1).bool()
         
-        # 找到所有特殊标记的位置
-        image_start = (input_ids == 8197)  # 图像块开始标记
-        image_end = (input_ids == 8196)    # 图像块结束标记
-        action_start = (input_ids == 10004)  # 动作块开始标记
-        action_end = (input_ids == 15004)    # 动作块结束标记
+        # Find all special token positions
+        image_start = (input_ids == 8197)  # Image block start token
+        image_end = (input_ids == 8196)    # Image block end token
+        action_start = (input_ids == 10004)  # Action block start token
+        action_end = (input_ids == 15004)    # Action block end token
 
-        # 找到每个batch中所有的图像块和动作块的起始和结束位置
+        # Find the start and end positions of all image and action blocks for each batch
         image_blocks = []
         action_blocks = []
         for batch_idx in range(batch_size):
-            # 找到当前batch的图像块起始和结束位置
+            # Find image block start and end positions for the current batch
             image_starts = torch.where(image_start[batch_idx])[0]
             image_ends = torch.where(image_end[batch_idx])[0]
             
-            # 如果图像块的起始和结束位置不匹配
+            # If image block start and end positions are mismatched
             if len(image_starts) > len(image_ends):
-                # 将当前batch的最后一个位置作为缺失的结束标记
+                # Use the last position in the sequence as the missing end token
                 last_position = seq_len - 1
                 image_ends = torch.cat([image_ends, torch.tensor([last_position], dtype=torch.long, device=self.device)])
             elif len(image_starts) < len(image_ends):
                 image_ends = image_ends[:-1]
             
-            # 确保图像块的起始和结束位置匹配
+            # Ensure image block starts and ends match
             if len(image_starts) != len(image_ends):
                 raise ValueError("Mismatched image start and end tokens in batch.")
             
-            # 存储图像块的起始和结束位置
+            # Store image block start and end positions
             image_blocks.append(list(zip(image_starts.cpu().numpy(), image_ends.cpu().numpy())))
             
-            # 找到当前batch的动作块起始和结束位置
+            # Find action block start and end positions for the current batch
             action_starts = torch.where(action_start[batch_idx])[0]
             action_ends = torch.where(action_end[batch_idx])[0]
             
-            # 如果动作块的起始和结束位置不匹配
+            # If action block start and end positions are mismatched
             if len(action_starts) > len(action_ends):
-                # 将当前batch的最后一个位置作为缺失的结束标记
+                # Use the last position in the sequence as the missing end token
                 last_position = seq_len - 1
                 action_ends = torch.cat([action_ends, torch.tensor([last_position], dtype=torch.long, device=self.device)])
             elif len(action_starts) < len(action_ends):
                 action_ends = action_ends[:-1]
-            
-            # 确保动作块的起始和结束位置匹配
+
+            # Ensure action block starts and ends match
             if len(action_starts) != len(action_ends):
                 raise ValueError("Mismatched action start and end tokens in batch.")
             
-            # 存储动作块的起始和结束位置
+            # Store action block start and end positions
             action_blocks.append(list(zip(action_starts.cpu().numpy(), action_ends.cpu().numpy())))
 
-        # 遍历每个batch并更新mask
+        # Iterate through each batch and update the mask
         for batch_idx in range(batch_size):
-            # 获取当前batch的图像块和动作块
+            # Get image and action blocks of the current batch
             current_image_blocks = image_blocks[batch_idx]
             current_action_blocks = action_blocks[batch_idx]
-            
-            # 找到最后一个图像块的结束位置
+
+            # Find the end position of the last image block
             if current_image_blocks:
-                last_image_end = current_image_blocks[-1][1]  # 最后一个图像块的结束位置
+                last_image_end = current_image_blocks[-1][1]  # End position of the last image block
             else:
-                last_image_end = -1  # 如果没有图像块，则认为所有动作块都在图像块之后
+                last_image_end = -1  # If no image block exists, consider all action blocks to be after the image block
             
-            # 遍历当前batch的所有动作块
+            # Iterate through all action blocks in the current batch
             for block_start, block_end in current_action_blocks:
-                # 判断当前动作块是否在最后一个图像块之后
+                # Check if the current action block is after the last image block
                 if block_start > last_image_end:
-                    # 找到当前动作块之前的所有动作块
+                    # Find all previous action blocks before the current one
                     previous_action_blocks = [
                         (s, e) for s, e in current_action_blocks if e < block_start
                     ]
                     
-                    # 如果存在之前的动作块，将当前动作块与这些动作块之间的注意力设为0
+                    # If previous action blocks exist, set attention between them and the current action block to 0
                     for prev_start, prev_end in previous_action_blocks:
                         mask[batch_idx, block_start:block_end + 1, prev_start:prev_end + 1] = 0
                 else:
-                    # 如果当前动作块不在最后一个图像块之后，则保持注意力为1
-                    pass  # 默认情况下已经是1，无需额外操作
+                    # If the current action block is not after the last image block, keep attention as 1
+                    pass  # Default is already 1, no further action needed
         
         return mask
 
